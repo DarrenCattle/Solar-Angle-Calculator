@@ -1,0 +1,156 @@
+<html>
+	<head>
+		<title>Solar Angle Calculator</title>
+	</head>
+
+	<link href="seethree/c3.css" rel="stylesheet" type="text/css">
+
+	<style>
+		.container {
+			display: inline-block;
+			text-align: center;
+			width: 100%;
+		}
+		.tables {
+			display: inline-block;
+			text-align: center;
+			width: 50%;
+		}
+		.heading {
+			display: inline-block;
+			text-align: center;
+			width: 50%;
+		}
+		.diagram {
+			display: inline-block;
+			text-align: center;
+			vertical-align: top;
+			width: 20%;
+			padding: 1%;
+		}
+	</style>
+
+	<body>
+		<div class="heading">
+			<h1>Solar Angle Calculator</h1>
+			<h2>by Darren Cattle</h2>
+			<h3>Latitude(-90 &#8804; lat &#8804; 90)</h3>
+				<input name="latitude" id="lat" type="text"></input>
+			<h3>Day of Year(0 &#8804; n &#8804; 365)</h3>
+				<input name="day_of_yr" id="dae" type="text"></input>
+			<br><br>
+			<input id="calc" type="button" value="Calculate!" onclick="update();" />
+			<br>
+			<h3>Results</h3>
+		</div>
+		<div class="diagram"><img width="100%" src="seethree/diagram.svg"></div>
+				<div class="diagram"><h2>Commentary</h2><h3>Zenith is interpreted in this context to mean angle above horizon line. Therefore, usually around solar noon (12:00), zenith will be at it's maximum value for a day. If the diagram is to be interpreted literally, zenith in this exercise is the angle of the arc-line called altitude. If you choose to enter values out of the ranges specified, expect some fun results!</h3></div>
+		<div class="tables" id="plota"></div><div class="tables" id="plotz"></div>
+		<div class="container" id="tab"></div>
+		
+	</body>
+
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<script src="seethree/c3.min.js"></script>
+
+	<script language="javascript" type="text/javascript">
+
+			function sind(num) {return Math.sin(num/180*Math.PI);};
+			function cosd(num) {return Math.cos(num/180*Math.PI);};
+			function tand(num) {return Math.tan(num/180*Math.PI);};
+			function asind(num) {return 180*Math.asin(num)/Math.PI;};
+			function acosd(num) {return 180*Math.acos(num)/Math.PI;};
+
+			function update() {
+
+				document.getElementById("tab").innerHTML = "";
+
+				var myTableDiv = document.getElementById("tab");
+				var table = document.createElement('TABLE');
+	            var tableBody = document.createElement('TBODY');
+
+	            table.border = '1'
+	            table.align = 'center';
+	            table.appendChild(tableBody);
+
+	            var heading = new Array();
+	            heading[0] = "Time";
+	            heading[1] = "Azimuth";
+	            heading[2] = "Zenith";
+
+				//TABLE COLUMNS
+	            var tr = document.createElement('TR');
+	            tableBody.appendChild(tr);
+	            for (var a = 0; a < heading.length; a++) {
+	                var th = document.createElement('TH')
+	                th.appendChild(document.createTextNode(heading[a]));
+	                tr.appendChild(th);
+	            }
+
+				var latitude = parseInt(document.getElementById('lat').value);
+				var day = parseInt(document.getElementById('dae').value);
+				console.log(latitude, day);
+				var azi = []; var zen = [];
+				var B = (day-1)*360/365.242;
+				var E = 229.18*(0.000075+0.001868*cosd(B)-0.032077*sind(B)-0.014615*cosd(2*B)-0.040849*sind(2*B));
+				var decl = 23.45*sind(360*(284+day)/365.242);
+
+				for(var b = 0; b<24; b++) {
+					for(var c = 0; c<=60; c++) {
+					        var hourangle = 0.25*(b*60+c-720);
+					        var czenith = cosd(latitude)*cosd(decl)*cosd(hourangle)+sind(latitude)*sind(decl);
+					        var zenith = acosd(czenith);
+					        var cazimuth = -(sind(latitude)*czenith-sind(decl))/(cosd(latitude)*sind(zenith));
+					        var azimuth = 180-acosd(cazimuth);
+					        var wew = acosd(tand(decl)/tand(latitude));
+					        var C1 = C2 = C3 = -1;
+					        var C1 = Math.abs(hourangle)<= wew ? 1 : -1;
+					        var C2 = latitude-decl>=0 ? 1 : -1;
+					        var C3 = hourangle>=0 ? 1 : -1;
+
+					        var prime = asind(sind(hourangle)*cosd(decl)/sind(zenith));
+					        var ys=C1*C2*prime+C3*(1-C1*C2)*90;
+
+					        azi.push(ys+180);
+					        zen.push(90-zenith);
+					}
+				}
+				//TABLE ROWS
+	            for (var d = 0; d < azi.length; d++) {
+	            	var tr = document.createElement('TR');
+            		tableBody.appendChild(tr);
+	            	var td = document.createElement('TD')
+	            	var tim = Math.floor(d/60) < 10 ? "0" + Math.floor(d/60) : Math.floor(d/60);
+	            	var tim1 = d%60 < 10 ? "0" + d%60 : d%60;
+                    td.appendChild(document.createTextNode(tim + ":" + tim1));
+                    tr.appendChild(td);
+                    var td = document.createElement('TD')
+                    td.appendChild(document.createTextNode(azi[d]));
+                    tr.appendChild(td);
+                    var td = document.createElement('TD')
+                    td.appendChild(document.createTextNode(zen[d]));
+                    tr.appendChild(td);
+	            }
+
+	            myTableDiv.appendChild(table);
+
+	            var plotazi = ['azimuth'].concat(azi);
+	            var plotzen = ['zenith'].concat(zen);
+
+	            var chart = c3.generate({
+				    bindto: '#plota',
+				    data: {
+				      columns: [plotazi],
+				      type: 'spline'
+				    }
+				});
+				var chart = c3.generate({
+				    bindto: '#plotz',
+				    data: {
+				      columns: [plotzen],
+				      type: 'spline'
+				    }
+				});
+			}
+	</script>
+</html>

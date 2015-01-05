@@ -10,11 +10,11 @@ clc
 clear
 %% Definitions
 day = 180; % 180 = June 29th
-latitude = 30.25; % 30.25 = Austin, TX
+latitude = 30; % 30.25 = Austin, TX
 %% Direction of Beam Radiation
 answer = zeros(24*60,5);
 % Hour Loop
-for i = 0:23
+for i = 0:12
 % Minute Loop
     for j = 1:60
         hour = i;
